@@ -1,6 +1,6 @@
 package App::PrereqGrapher;
 {
-  $App::PrereqGrapher::VERSION = '0.03';
+  $App::PrereqGrapher::VERSION = '0.04';
 }
 #
 # ABSTRACT: generate dependency graph using Perl::PrereqScanner
@@ -148,13 +148,13 @@ sub generate_graph
 
 sub is_core
 {
-    my $module_name = shift;
+    my $module   = shift;
+    my $version  = @_ > 0 ? shift : $^V;
 
-    return (   defined(Module::CoreList::first_release($module_name))
-            && $^V >= Module::CoreList::first_release($module_name)
-            && (!defined(Module::CoreList::removed_from($module_name))
-                || $^V <= Module::CoreList::removed_from($module_name))
-           );
+    return 0 unless defined(my $first_release = Module::CoreList::first_release($module));
+    return 0 unless $version >= $first_release;
+    return 1 if !defined(my $final_release = Module::CoreList::removed_from($module));
+    return $version <= $final_release;
 }
 
 1;
