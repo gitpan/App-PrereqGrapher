@@ -19,11 +19,14 @@ prereq-grapher - generate dependency graph for perl module or source
 
  Options:
    -o <file>  The file to write the graph into
+   -nc        Don't include core modules in dependency graph
+   -nrc       Show core modules, but not their dependencies
    -dot       Generate graph in dot format (used by GraphViz)
    -svg       Generate graph as Scalable Vector Graphics
    -html      Generate graph as HTML
    -gml       Generate graph as GraphML
    -vcg       Generate graph in VCG format
+   -verbose   Display verbose messages as we run
 
 =head1 DESCRIPTION
 
@@ -58,6 +61,14 @@ If not specified, B<prereq-grapher> will write the graph in a file
 called C<dependencies>, and the extension will indicate the format
 (dot, svg, html, gml, or vcg).
 
+=item B<-nc> | B<-no-core>
+
+Don't include any core dependencies in the generated dependency graph.
+
+=item B<-nrc> | B<-no-recurse-core>
+
+Include core modules in the output, but don't include any of their dependencies.
+
 =item B<-dot>
 
 Generate the dependency graph in the Dot format supported by the GraphViz tools.
@@ -71,6 +82,13 @@ Generate the dependency graph as Scalable Vector Graphics.
 Generate the dependency graph as an HTML file with embedded CSS.
 Note: I haven't got this to work yet, but it's one of the output formats
 supported by L<Graph::Easy>.
+
+=item B<-v> | B<-verbose>
+
+Display verbose messages as the script runs.
+If a module is use'd or require'd, but not installed locally,
+then by default it will be silently ignored.
+In verbose mode you'll hear about all such modules.
 
 =back
 

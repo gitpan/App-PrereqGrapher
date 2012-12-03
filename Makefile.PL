@@ -31,13 +31,14 @@ my %WriteMakefileArgs = (
     "Carp" => 0,
     "Getopt::Long" => 0,
     "Graph::Easy" => 0,
+    "Module::CoreList" => 0,
     "Module::Path" => 0,
     "Moo" => 0,
     "Perl::PrereqScanner" => 0,
     "strict" => 0,
     "warnings" => 0
   },
-  "VERSION" => "0.02",
+  "VERSION" => "0.03",
   "test" => {
     "TESTS" => "t/*.t"
   }

@@ -1,6 +1,6 @@
 package App::PrereqGrapher;
 {
-  $App::PrereqGrapher::VERSION = '0.02';
+  $App::PrereqGrapher::VERSION = '0.03';
 }
 #
 # ABSTRACT: generate dependency graph using Perl::PrereqScanner
@@ -14,6 +14,7 @@ use Perl::PrereqScanner;
 use Getopt::Long qw/:config no_ignore_case/;
 use Graph::Easy;
 use Module::Path qw(module_path);
+use Module::CoreList;
 
 my %formats =
 (
@@ -34,6 +35,18 @@ has output_file => (
     is  => 'ro',
 );
 
+has no_core => (
+    is => 'ro',
+);
+
+has no_recurse_core => (
+    is => 'ro',
+);
+
+has verbose => (
+    is => 'ro',
+);
+
 sub new_with_options
 {
     my $class    = shift;
@@ -50,12 +63,15 @@ sub parse_options
     my %format;
 
     GetOptions(
-        'o|output-file=s'   => \$options{'output_file'},
-        'dot'               => \$format{'dot'},
-        'svg'               => \$format{'svg'},
-        'gml'               => \$format{'gml'},
-        'vcg'               => \$format{'vcg'},
-        'html'              => \$format{'html'},
+        'o|output-file=s'     => \$options{'output_file'},
+        'nc|no-core'          => \$options{'no_core'},
+        'nrc|no-recurse-core' => \$options{'no_recurse_core'},
+        'v|verbose'           => \$options{'verbose'},
+        'dot'                 => \$format{'dot'},
+        'svg'                 => \$format{'svg'},
+        'gml'                 => \$format{'gml'},
+        'vcg'                 => \$format{'vcg'},
+        'html'                => \$format{'html'},
     ) || croak "Can't get options.";
 
     foreach my $format (keys %formats) {
@@ -66,6 +82,10 @@ sub parse_options
         croak "you can only specify at most ONE output format (default is 'dot')";
     }
     $format{dot} = 1 unless keys %format == 1;
+
+    if ($options{no_core} && $options{no_recurse_core}) {
+        croak "doesn't make sense to specify no-core and no-recurse-core together";
+    }
 
     for (keys %options) {
         delete $options{$_} unless defined $options{$_};
@@ -96,7 +116,7 @@ sub generate_graph
         } elsif (-f $module) {
             $path = $module;
         } else {
-            carp "can't find $module - keeping calm and carrying on.\n";
+            carp "can't find $module - keeping calm and carrying on.\n" if $self->verbose;
             next;
         }
 
@@ -107,11 +127,13 @@ sub generate_graph
         ++$module_count;
         $depsref = $prereqs->as_string_hash();
         foreach my $dep (keys %{ $depsref }) {
-            if ($dep eq 'perl') {
+            if ($self->no_core && is_core($dep)) {
+                # don't include core modules
+            } elsif ($dep eq 'perl') {
                 $graph->add_edge($module, "perl $depsref->{perl}");
             } else {
                 $graph->add_edge($module, $dep);
-                push(@queue, $dep);
+                push(@queue, $dep) unless $self->no_recurse_core && is_core($dep);
             }
         }
     }
@@ -124,6 +146,17 @@ sub generate_graph
     print STDERR "$module_count modules processed. Graph written to $filename\n";
 }
 
+sub is_core
+{
+    my $module_name = shift;
+
+    return (   defined(Module::CoreList::first_release($module_name))
+            && $^V >= Module::CoreList::first_release($module_name)
+            && (!defined(Module::CoreList::removed_from($module_name))
+                || $^V <= Module::CoreList::removed_from($module_name))
+           );
+}
+
 1;
 
 =head1 NAME
@@ -133,8 +166,14 @@ App::PrereqGrapher - generate dependency graph using Perl::PrereqScanner
 =head1 SYNOPSIS
 
   use App::PrereqGrapher;
- 
-  my %options = ( format => 'dot', output_file => 'prereqs.dot' );
+  
+  my %options = (
+                          format => 'dot',
+                         no_core => 0,
+                 no_recurse_core => 1,
+                     output_file => 'prereqs.dot'
+                         verbose => 0,
+                );
   my $grapher = App::PrereqGrapher->new( %options );
   
   $grapher->generate_graph('Module::Path');
@@ -162,13 +201,58 @@ require different minimum versions of perl.
 
 =head2 new
 
-The constructor takes two options:
+The constructor understands the following options:
 
 =over 4
 
 =item format
 
-Select the output format, which must be one of the following:
+Select the output format, which must be one of: dot, svg, vcg, gml, or html.
+See L</"OUTPUT FORMATS"> for more about the supported output formats.
+If not specified, the default format is 'dot'.
+
+=item output_file
+
+Specifies the name of the file to write the dependency graph into,
+including the extension. If not specified, the filename will be C<dependencies>,
+with the extension set according to the format.
+
+=item no_core
+
+Don't include any modules which are core (included with perl) for the version
+of perl being used.
+
+=item no_recurse_core
+
+When a core module is used, include it in the dependency graph,
+but don't show any of I<its> dependencies.
+
+=item verbose
+
+Display verbose logging as the grapher runs.
+Currently this will just tell you if a module was use'd or require'd,
+but couldn't be found locally.
+
+=back
+
+=head2 generate_graph
+
+Takes one or more seed items. Each item may be a module or the path to a perl file.
+
+  $grapher->generate_graph('Module::Path', 'Module::Version');
+
+It will first try and interpret each item as a module, but if it can't find a module
+with the given name, it will try and interpret it as a file path.
+This means that if you have a file called C<strict> for example, then you won't be
+able to run:
+
+  $grapher->generate_graph('strict');
+
+as it will be interpreted as the module of that name. Put an explicit path to stop this:
+
+  $grapher->generate_graph('./strict');
+
+=head1 OUTPUT FORMATS
 
 =over 4
 
@@ -196,34 +280,7 @@ but it's one of the formats supported by L<Graph::Easy>.
 
 =back
 
-If not specified, the default format is 'dot'.
-
-=item output_file
-
-Specifies the name of the file to write the dependency graph into,
-including the extension. If not specified, the filename will be C<dependencies>,
-with the extension set according to the format.
-
-=back
-
-=head2 generate_graph
-
-Takes one or more seed items. Each item may be a module or the path to a perl file.
-
-  $grapher->generate_graph('Module::Path', 'Module::Version');
-
-It will first try and interpret each item as a module, but if it can't find a module
-with the given name, it will try and interpret it as a file path.
-This means that if you have a file called C<strict> for example, then you won't be
-able to run:
-
-  $grapher->generate_graph('strict');
-
-as it will be interpreted as the module of that name. Put an explicit path to stop this:
-
-  $grapher->generate_graph('./strict');
-
-=head KNOWN BUGS
+=head1 KNOWN BUGS
 
 L<Perl::PrereqScanner> uses L<PPI> to parse each item.
 PPI has a hard-coded limit for the size of file it's prepared to parse
@@ -234,27 +291,23 @@ and if you try and graph a file that use's Perl::Tidy,
 then it just won't appear in the graph.
 
 If a class isn't defined in it's own file,
-then App::PrereqGrapher won't find it.
-For example Tie::StdHash is defined inside Tie::Hash,
-so you'll get the following error message:
+then App::PrereqGrapher won't find it;
+for example Tie::StdHash is defined inside Tie::Hash.
+By default these are silently ignored,
+but if you use the B<-verbose> option you'll get the following warning:
 
- can't find Tie::StdHash - keeping calm and carrying on.
+  can't find Tie::StdHash - keeping calm and carrying on.
 
 Perl::PrereqScanner parses code and makes no attempt to
 determine whether any of it would actually run on your platform.
 For example, one module might decide at run-time whether to C<require>
 Foo::Bar or Foo::Baz, and might never use Foo::Baz on your OS.
 But Perl::PrereqScanner will see both of Foo::Bar and Foo::Baz
-as pre-reqs, and will warn if either of them isn't installed.
+as pre-reqs.
 
 =head1 TODO
 
 =over 4
-
-=item *
-
-By default maybe we shouldn't warn if a module isn't found;
-could have a verbose option?
 
 =item *
 

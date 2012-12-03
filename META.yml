@@ -21,6 +21,7 @@ requires:
   Carp: 0
   Getopt::Long: 0
   Graph::Easy: 0
+  Module::CoreList: 0
   Module::Path: 0
   Moo: 0
   Perl::PrereqScanner: 0
@@ -29,4 +30,4 @@ requires:
 resources:
   bugtracker: https://github.com/neilbowers/App-PrereqGrapher/issues
   repository: git://github.com/neilbowers/App-PrereqGrapher.git
-version: 0.02
+version: 0.03
