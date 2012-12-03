@@ -11,7 +11,13 @@ use ExtUtils::MakeMaker 6.30;
 my %WriteMakefileArgs = (
   "ABSTRACT" => "generate dependency graph using Perl::PrereqScanner",
   "AUTHOR" => "Neil Bowers <neil\@bowers.com>",
-  "BUILD_REQUIRES" => {},
+  "BUILD_REQUIRES" => {
+    "Devel::FindPerl" => 0,
+    "File::Compare" => 0,
+    "File::Spec::Functions" => 0,
+    "FindBin" => "0.05",
+    "Test::More" => "0.88"
+  },
   "CONFIGURE_REQUIRES" => {
     "ExtUtils::MakeMaker" => "6.30"
   },
@@ -21,8 +27,17 @@ my %WriteMakefileArgs = (
   ],
   "LICENSE" => "perl",
   "NAME" => "App::PrereqGrapher",
-  "PREREQ_PM" => {},
-  "VERSION" => "0.01",
+  "PREREQ_PM" => {
+    "Carp" => 0,
+    "Getopt::Long" => 0,
+    "Graph::Easy" => 0,
+    "Module::Path" => 0,
+    "Moo" => 0,
+    "Perl::PrereqScanner" => 0,
+    "strict" => 0,
+    "warnings" => 0
+  },
+  "VERSION" => "0.02",
   "test" => {
     "TESTS" => "t/*.t"
   }
