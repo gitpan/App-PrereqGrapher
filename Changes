@@ -1,5 +1,8 @@
 Revision history for perl module App::PrereqGrapher
 
+0.05 2012-12-05
+    - Added depth option, so you can limit the depth of dep graph generated
+
 0.04 2012-12-03
     - Rewrote my internal is_core() function while submitting it as a feature
       request for Module::CoreList

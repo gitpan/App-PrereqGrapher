@@ -30,4 +30,4 @@ requires:
 resources:
   bugtracker: https://github.com/neilbowers/App-PrereqGrapher/issues
   repository: git://github.com/neilbowers/App-PrereqGrapher.git
-version: 0.04
+version: 0.05

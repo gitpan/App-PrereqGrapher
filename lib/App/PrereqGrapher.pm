@@ -1,6 +1,6 @@
 package App::PrereqGrapher;
 {
-  $App::PrereqGrapher::VERSION = '0.04';
+  $App::PrereqGrapher::VERSION = '0.05';
 }
 #
 # ABSTRACT: generate dependency graph using Perl::PrereqScanner
@@ -47,6 +47,11 @@ has verbose => (
     is => 'ro',
 );
 
+has depth => (
+    is => 'ro',
+    isa => sub { croak "depth must be an integer\n" unless $_[0] =~ /^\d$/; },
+);
+
 sub new_with_options
 {
     my $class    = shift;
@@ -63,6 +68,7 @@ sub parse_options
     my %format;
 
     GetOptions(
+        'd|depth=i'           => \$options{'depth'},
         'o|output-file=s'     => \$options{'output_file'},
         'nc|no-core'          => \$options{'no_core'},
         'nrc|no-recurse-core' => \$options{'no_recurse_core'},
@@ -102,9 +108,12 @@ sub generate_graph
     my ($prereqs, $depsref);
     my ($path, $filename, $fh);
     my $module_count = 0;
+    my %depth;
 
     $scanner = Perl::PrereqScanner->new;
     $graph   = Graph::Easy->new();
+
+    @depth{@inputs} = map { 0 } @inputs;
 
     push(@queue, @inputs);
     while (@queue > 0) {
@@ -127,12 +136,16 @@ sub generate_graph
         ++$module_count;
         $depsref = $prereqs->as_string_hash();
         foreach my $dep (keys %{ $depsref }) {
+            if (!exists($depth{$dep}) || $depth{$dep} > $depth{$module} + 1) {
+                $depth{$dep} = $depth{$module} + 1;
+            }
             if ($self->no_core && is_core($dep)) {
                 # don't include core modules
             } elsif ($dep eq 'perl') {
                 $graph->add_edge($module, "perl $depsref->{perl}");
             } else {
                 $graph->add_edge($module, $dep);
+                next if $self->depth && $depth{$dep} >= $self->depth;
                 push(@queue, $dep) unless $self->no_recurse_core && is_core($dep);
             }
         }
@@ -216,6 +229,12 @@ If not specified, the default format is 'dot'.
 Specifies the name of the file to write the dependency graph into,
 including the extension. If not specified, the filename will be C<dependencies>,
 with the extension set according to the format.
+
+=item depth
+
+Only generate the graph to the specified depth.
+If the complete dependency graph is very large, this option may help you get
+an overview.
 
 =item no_core
 
@@ -314,6 +333,11 @@ as pre-reqs.
 Have an option to control what depth we should recurse to?
 You might only be interested in the dependencies of your code,
 and their first level of dependencies.
+
+=item *
+
+Show some indication that we're running. It can take a long time to run
+if your ultimate dependency graph is very large.
 
 =back
 
