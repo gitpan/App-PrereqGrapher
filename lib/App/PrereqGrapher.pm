@@ -1,6 +1,6 @@
 package App::PrereqGrapher;
 {
-  $App::PrereqGrapher::VERSION = '0.07';
+  $App::PrereqGrapher::VERSION = '0.08';
 }
 #
 # ABSTRACT: generate dependency graph using Perl::PrereqScanner
