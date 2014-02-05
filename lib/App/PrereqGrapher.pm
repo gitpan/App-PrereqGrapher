@@ -1,6 +1,6 @@
 package App::PrereqGrapher;
 {
-  $App::PrereqGrapher::VERSION = '0.10';
+  $App::PrereqGrapher::VERSION = '0.11';
 }
 #
 # ABSTRACT: generate dependency graph using Perl::PrereqScanner
@@ -50,12 +50,12 @@ has verbose => (
 
 has depth => (
     is => 'ro',
-    isa => sub { croak "depth must be an integer\n" unless $_[0] =~ /^\d$/; },
+    isa => sub { croak "depth must be an integer\n" unless $_[0] =~ /^\d+$/; },
 );
 
 has timeout => (
     is => 'ro',
-    isa => sub { croak "timeout must be an integer\n" unless $_[0] =~ /^\d$/; },
+    isa => sub { croak "timeout must be an integer\n" unless $_[0] =~ /^\d+$/; },
 );
 
 sub new_with_options
@@ -192,7 +192,7 @@ App::PrereqGrapher - generate dependency graph using Perl::PrereqScanner
                           format => 'dot',
                          no_core => 0,
                  no_recurse_core => 1,
-                     output_file => 'prereqs.dot'
+                     output_file => 'prereqs.dot',
                          verbose => 0,
                 );
   my $grapher = App::PrereqGrapher->new( %options );
